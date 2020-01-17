@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './global.css';
 import './App.css';
 import './Sidebar.css';
@@ -7,32 +7,56 @@ import './Main.css';
 // Propriedade = informações que um componente PAI passa para o componente FILHO
 // Estado = informações mantidas pelo componente (Lembrar: imutabilidade)
 
+
 function App() {
+  const [github_username, setGithub_username] = useState('');
+  const [techs, setTechs] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        console.log(position)
+        const { latitude, longitude } = position.coords;
+
+        setLatitude(latitude);
+        setLongitude(longitude);
+      },
+      (err) => {
+        console.log(err)
+      },
+      {
+        time: 30000
+      }
+    )
+    
+  }, [])
 
   return (
     <div id="app">
       <aside>
         <strong>Cadastrar</strong>
         <form>
-          <div class="input-block">
+          <div className="input-block">
             <label htmlFor="github_username">Usuário do Github</label>
             <input name="github_username" id="github_username" required />
           </div>
 
-          <div class="input-block">
+          <div className="input-block">
             <label htmlFor="techs">Tecnologias</label>
             <input name="techs" id="techs" required />
           </div>
 
-          <div class="input-group">
-            <div class="input-block">
+          <div className="input-group">
+            <div className="input-block">
               <label htmlFor="latitude">Latitude</label>
-              <input name="latitude" id="latitude" required />
+              <input onChange={e => setLatitude(e.target.value)} type="numeric" name="latitude" id="latitude" required value={latitude} />
             </div>
 
-            <div class="input-block">
+            <div className="input-block">
               <label htmlFor="longitude">Longitude</label>
-              <input name="longitude" id="longitude" required />
+              <input onChange={e => setLongitude(e.target.value)} type="numeric" name="longitude" id="longitude" required value={longitude} />
             </div>
           </div>
 
