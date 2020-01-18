@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import { View, StyleSheet, Image, Text, TextInput, TouchableOpacity } from 'react-native';
+import MapView, { Marker, Callout } from 'react-native-maps';
 import { requestPermissionAsync, getCurrentPositionAsync } from 'expo-location';
+import { MaterialIcons } from '@expo/vector-icons';
+import api from '../services/api';
 
-function Main() {
+function Main({ navigation }) {
     const [currentRegion, setCurrentRegion] = useState(null);
+    const [devs, setDevs] = useState([]);
+    const [techs, setTechs] = useState([]);
 
     useEffect(() => {
         async function loadInitialPosition() {
@@ -12,8 +16,9 @@ function Main() {
 
             if (granted) {
                 const { coords } = await getCurrentPositionAsync({
-                    enableHighAccuracy: true,
+                    enableHighAccuracy: false,
                 });
+                console.log('FLAG COORDS', coords);
 
                 const { latitude, longitude } = coords;
 
@@ -29,14 +34,52 @@ function Main() {
         loadInitialPosition();
     }, [])
 
-    if (!currentRegion) {
-        return null;
+    async function loadDevs() {
+        const { latitude, longitude } = currentRegion;
+        const response = await api.get('/search', {
+            params: {
+                latitude,
+                longitude,
+                techs
+            }
+        });
+
+        setDevs(response.data.devs);
     }
 
-    return (
-    <MapView initialRegion={currentRegion} style={styles.map}>
+    function handleRegionChanged(region) {
+        setCurrentRegion(region);
+    }
 
-    </Mapview>
+    // if (!currentRegion) {
+    //     return null;
+    // }
+
+    return (
+        <>
+            <MapView initialRegion={currentRegion} style={styles.map} onRegionChangeComplete={handleRegionChanged}>
+                {devs.map(dev => (
+                    <Marker key={dev._id} coordinate={{ latitude: dev.location.coordinates[1], longitude: dev.location.coordinates[0] }}>
+                    <Image source={{ uri: dev.avatar_url }} style={styles.avatar} />
+                    <Callout onPress={() => {
+                        navigation.navigate('Profile', { github_username: dev.github_username })
+                    }}>
+                        <View style={styles.callout}>
+                            <Text style={styles.devName}>{dev.name}</Text>
+                            <Text style={styles.devBio}>{dev.bio}</Text>
+                            <Text style={styles.devTechs}>{dev.techs}</Text>
+                        </View>
+                    </Callout>
+                </Marker>
+                ))}
+            </MapView>
+            <View style={styles.searchForm}>
+                <TextInput style={styles.searchInput} placeholder="Buscar devs por techs..." placeholderTextColor="#999" autoCapitalize="words" autoCorrect={false} value={techs} onChangeText={setTechs} />
+                <TouchableOpacity style={styles.loadButton} onPress={loadDevs}>
+                    <MaterialIcons name="my-location" color="#FFF" size={20} />
+                </TouchableOpacity>
+            </View>
+        </>
     );
 }
 
@@ -44,7 +87,60 @@ const styles = StyleSheet.create({
     map: {
         flex: 1
     },
-    
+    avatar: {
+        width: 54,
+        height: 54,
+        borderRadius: 4,
+        borderWidth: 4,
+        borderColor: '#FFF'
+    },
+    callout: {
+        width: 260
+    },
+    devName: {
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    devBio: {
+        color: '#666',
+        marginTop: 5,
+    },
+    devTechs: {
+        marginTop: 5
+    },
+    searchForm: {
+        position: 'absolute',
+        top: 20,
+        left: 20,
+        right: 20,
+        zIndex: 5,
+        flexDirection: 'row',
+    },
+    searchInput: {
+        flex: 1,
+        height: 50,
+        backgroundColor: '#FFF',
+        color: '#333',
+        borderRadius: 25,
+        paddingHorizontal: 20,
+        fontSize: 16,
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowOffset: {
+            width: 4,
+            height: 4,
+        },
+        elevation: 2,
+    },
+    loadButton: {
+        width: 50,
+        height: 50,
+        backgroundColor: '#BE4Dff',
+        borderRadius: 25,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 15
+    }
 })
 
 export default Main;
